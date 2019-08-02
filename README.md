@@ -6,6 +6,28 @@ https://fetlife.com/groups/165887) which provides interfacing
 logic and control to a wide variety of devices with a web and
 websockets interface thanks to its creator.
 
+The interface is two-fold:
+* A web interface can be used, and its phone friendly albeit very
+Web 1.0.
+* A 4 button remote control (I use a presentation controller)
+
+The basic states are:
+* Idle - waiting to be activated, you cat toggle the device on
+  and off in this mode.
+* Activated - indicate that you are getting ready to start.  It also
+  starts a failsafe time that will start the service in 15 minutes
+* Started - service starts a random timer about 1-3 minutes after which it
+  starts surprising you.
+
+* Locked - in addition you can place the service in the Locked state which prevents resetting
+(stopping) the service, or further on/off cycles
+
+My clicker remote is set up as follows:
+* Up - Activate, then Start
+* Left - Reset (stop)
+* Right - Toggle on/off (only before Started)
+* Down - Lock
+
 So far we have successfully used this to control an Erostek
 ET232 controller with very good success.
 

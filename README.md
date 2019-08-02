@@ -29,7 +29,7 @@ and that will come in time.
 FAILSAFE_START = 900
 MAX_SESSION_TIME = 70 * 60  # 70 minutes
 
-\# Random number bounds
+# Random number bounds
 DELAY_MIN = 15   # must be less than following MAX values
 START_SLEEP_MAX = 180
 ESTIM_ON_MAX = 210

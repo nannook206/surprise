@@ -19,12 +19,14 @@ Defines which modes will be used:
 USEFUL_ET232_MODES=[1, 2, 3, 4, 6, 8, 9, 10, 11, 12, 13, 14, 15,
                     2, 3, 10, 12, 14]
 '''
+
 * SurpriseDweeb.py
 This is the module that does all the surprising behavior.  Lots of use
 of the random module to provide a unique experience every time.
 There are lots of parameters here that you may want to tweak (and yes
 we should have a way to more easily set these without changing the code
 and that will come in time.
+
 '''
 FAILSAFE_START = 900
 MAX_SESSION_TIME = 70 * 60  # 70 minutes

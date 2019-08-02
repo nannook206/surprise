@@ -39,17 +39,17 @@ ADD_ON_PERCENT = 30
 ADD_OFF_PERCENT = 20
 TEASE_PERCENT = 15
 ```
-* * FAILSAFE_START
+ * FAILSAFE_START
 is the time from activating the application to when it starts
 even if you are not ready (or lose access to the clicker...).
-* * MAX_SESSION_TIME
+ * MAX_SESSION_TIME
 is the maximum time for a session.  Surprise turns off and
 returns to idle after this much time in seconds.
-* * DELAY_MIN
+ * DELAY_MIN
 minimum time for a delay (see the next three entries)
-* * START_SLEEP_MAX
+ * START_SLEEP_MAX
 max amount of time to wait before starting the surprising experience (once STARTed)
-* * ESTIM_ON_MAX
+ * ESTIM_ON_MAX
 max amount of time in seconds for an ESTIMulating event
 (but note it can be added to with additional random amounts, see code)
  * ESTIM_OFF_MAX

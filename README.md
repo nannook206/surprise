@@ -39,17 +39,25 @@ ADD_ON_PERCENT = 30
 ADD_OFF_PERCENT = 20
 TEASE_PERCENT = 15
 ```
-** FAILSAFE_START is the time from activating the application to when it starts
+** FAILSAFE_START
+is the time from activating the application to when it starts
 even if you are not ready (or lose access to the clicker...).
-** MAX_SESSION_TIME is the maximum time for a session.  Surprise turns off and
+** MAX_SESSION_TIME
+is the maximum time for a session.  Surprise turns off and
 returns to idle after this much time in seconds.
-** DELAY_MIN minimum time for a delay (see the next three entries)
-** START_SLEEP_MAX max amount of time to wait before starting the surprising experience (once STARTed)
-** ESTIM_ON_MAX max amount of time in seconds for an ESTIMulating event
+** DELAY_MIN
+minimum time for a delay (see the next three entries)
+** START_SLEEP_MAX
+max amount of time to wait before starting the surprising experience (once STARTed)
+** ESTIM_ON_MAX
+max amount of time in seconds for an ESTIMulating event
 (but note it can be added to with additional random amounts, see code)
-** ESTIM_OFF_MAX max amount for time in seconds for the off cycle (but this is also subject to addtions)
-** ADD_ON_PERCENT likelihood that you will add an addtion amount of time to an ON cycle.  Repeats until it fails to add.
-** ADD_OFF_PERCENT likelihood that you will add an addtion amount of time to an OFF cycle.  Repeats until it fails to add.
+** ESTIM_OFF_MAX
+max amount for time in seconds for the off cycle (but this is also subject to addtions)
+** ADD_ON_PERCENT
+likelihood that you will add an addtion amount of time to an ON cycle.  Repeats until it fails to add.
+** ADD_OFF_PERCENT
+likelihood that you will add an addtion amount of time to an OFF cycle.  Repeats until it fails to add.
 * dweebClient.py
 Class and methods to support talking to DeviceWeb service using
 websockets.  Currenly assumse that dweeb is running on the same
@@ -78,6 +86,7 @@ dweebTest.py
 Just a simple program to test the interface from my Python to dweeb.
 Included in case it will help others with debugging other devices.
 
-I try to provide a good amount of diagnosics from all the modules.
+I try to provide a good amount of diagnosics from all the modules.  I play with output
+of ./SurpriseDweeb.py and grep to get an idea of what the parameters are going to do.
 
 For testing, you should be able invoke individual modules for functional unit testing.

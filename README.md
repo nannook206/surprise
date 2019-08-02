@@ -65,7 +65,9 @@ host and uses localhost to access it, but it could be on another
 host.  Currently a code change but could be easily parameterized.
 Its pretty specific to the ET232 but can be easily generalise to
 other devices and I am welcome to adding additional device support
-here. Pay attention to the level setting in __init__.  I set a max, which
+here.
+
+  Pay attention to the level setting in __init__.  I set a max, which
 we do not exceed, a normal and a low (teasing) level.
 * surprise.service
 systemd configuration file to start Surprise daemon

@@ -52,11 +52,11 @@ max amount of time to wait before starting the surprising experience (once START
 * * ESTIM_ON_MAX
 max amount of time in seconds for an ESTIMulating event
 (but note it can be added to with additional random amounts, see code)
-* * ESTIM_OFF_MAX
+ * ESTIM_OFF_MAX
 max amount for time in seconds for the off cycle (but this is also subject to addtions)
-* * ADD_ON_PERCENT
+ * ADD_ON_PERCENT
 likelihood that you will add an addtion amount of time to an ON cycle.  Repeats until it fails to add.
-* * ADD_OFF_PERCENT
+ * ADD_OFF_PERCENT
 likelihood that you will add an addtion amount of time to an OFF cycle.  Repeats until it fails to add.
 * dweebClient.py
 Class and methods to support talking to DeviceWeb service using

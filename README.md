@@ -25,7 +25,7 @@ of the random module to provide a unique experience every time.
 There are lots of parameters here that you may want to tweak (and yes
 we should have a way to more easily set these without changing the code
 and that will come in time.
-  ```
+```
 FAILSAFE_START = 900
 MAX_SESSION_TIME = 70 * 60  # 70 minutes
 
@@ -38,7 +38,8 @@ ESTIM_OFF_MAX = 150
 ADD_ON_PERCENT = 30
 ADD_OFF_PERCENT = 20
 TEASE_PERCENT = 15
-  ```
+```
+* Key Parameters from SurpriseDweeb.py
   - FAILSAFE_START
 is the time from activating the application to when it starts
 even if you are not ready (or lose access to the clicker...).

@@ -1,0 +1,9 @@
+[Unit]
+Description=surprise service that uses automation hat
+ConditionPathExists=/home/pi/dweeb/run_dweeb
+
+[Service]
+ExecStart=/home/pi/dweeb/run_dweeb
+
+[Install]
+WantedBy=multi-user.target

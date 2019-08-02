@@ -1,0 +1,6 @@
+#!/bin/bash
+cd /home/pi/surprise
+sleep 10
+while true; do 
+	./runSurpriseDweeb.py
+done

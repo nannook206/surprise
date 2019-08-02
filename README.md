@@ -39,24 +39,24 @@ ADD_ON_PERCENT = 30
 ADD_OFF_PERCENT = 20
 TEASE_PERCENT = 15
 ```
-** FAILSAFE_START
+* * FAILSAFE_START
 is the time from activating the application to when it starts
 even if you are not ready (or lose access to the clicker...).
-** MAX_SESSION_TIME
+* * MAX_SESSION_TIME
 is the maximum time for a session.  Surprise turns off and
 returns to idle after this much time in seconds.
-** DELAY_MIN
+* * DELAY_MIN
 minimum time for a delay (see the next three entries)
-** START_SLEEP_MAX
+* * START_SLEEP_MAX
 max amount of time to wait before starting the surprising experience (once STARTed)
-** ESTIM_ON_MAX
+* * ESTIM_ON_MAX
 max amount of time in seconds for an ESTIMulating event
 (but note it can be added to with additional random amounts, see code)
-** ESTIM_OFF_MAX
+* * ESTIM_OFF_MAX
 max amount for time in seconds for the off cycle (but this is also subject to addtions)
-** ADD_ON_PERCENT
+* * ADD_ON_PERCENT
 likelihood that you will add an addtion amount of time to an ON cycle.  Repeats until it fails to add.
-** ADD_OFF_PERCENT
+* * ADD_OFF_PERCENT
 likelihood that you will add an addtion amount of time to an OFF cycle.  Repeats until it fails to add.
 * dweebClient.py
 Class and methods to support talking to DeviceWeb service using
@@ -65,9 +65,7 @@ host and uses localhost to access it, but it could be on another
 host.  Currently a code change but could be easily parameterized.
 Its pretty specific to the ET232 but can be easily generalise to
 other devices and I am welcome to adding additional device support
-here.
-
-Pay attention to the level setting in __init__.  I set a max, which
+here. Pay attention to the level setting in __init__.  I set a max, which
 we do not exceed, a normal and a low (teasing) level.
 * surprise.service
 systemd configuration file to start Surprise daemon

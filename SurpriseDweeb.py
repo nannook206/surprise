@@ -178,15 +178,18 @@ class Surprise:
             self.setTimer(25*60, self.keepAliveModeChange, None)
 
     def queueModeAndPowerChange(self):
-        self.queueModeChange()
-        self.queueOn()
+        newMode = self.queueModeChange()
+        onCommand = ['on_low', 'on_low', 'on_norm', 'on_norm', 'on_max']
+        index = random.randint(0, len(onCommand) - 1)
+        logging.error('Turning %s, %s' % (onCommand[index], newMode))
+        self.queue.put({'cmd': onCommand[index]})
 
     def queueModeChange(self):
         mode = self.nextMode()
         maValue = random.randint(-50, 50)
-        logging.error('Mode Change: %s, MA %d' % (ET232ModeNames[mode], maValue))
         self.queue.put({'cmd': 'set_mode', 'value': mode})
         self.queue.put({'cmd': 'set_ma', 'value': maValue})
+        return 'Mode %s, MA %d' % (ET232ModeNames[mode], maValue)
 
     def calculateTime(self, max, percentage):
         secs = self.delay(max)
@@ -198,15 +201,9 @@ class Surprise:
         if secs > 10 and random.randint(0, 100) < TEASE_PERCENT:
             logging.error('  teasing!')
             secs /= 10
-        logging.error('Interval %d seconds %s' % (secs, amounts))
+        logging.debug('Interval %d seconds %s' % (secs, amounts))
         self.sessionTime += secs
         return secs
-
-    def queueOn(self):
-        onCommand = ['on_low', 'on_low', 'on_norm', 'on_norm', 'on_max']
-        index = random.randint(0, len(onCommand) - 1)
-        logging.error('Turning %s' % onCommand[index])
-        self.queue.put({'cmd': onCommand[index]})
 
     def turnOn(self):
         if self.sessionTime > self.maxSession:

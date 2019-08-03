@@ -1,4 +1,12 @@
 #!/usr/bin/env python3
+'''
+This is the module that does all the surprising behavior.  Lots of use
+of the random module to provide a unique experience every time.
+
+There are lots of parameters here that you may want to tweak (and yes
+we should have a way to more easily set these without changing the code
+and that will come in time.
+'''
 
 import asyncio
 import logging
@@ -11,6 +19,24 @@ import queue
 from dweebClient import dweebClient, ET232ModeNames
 
 
+'''
+These variable largely define the duration of the surprising events.
+  FAILSAFE_START is the time from activating the application to when it starts
+      even if you are not ready (or lose access to the clicker...).
+  MAX_SESSION_TIME is the maximum time for a session.  Surprise turns off and
+      returns to idle after this much time in seconds.
+  DELAY_MIN minimum time for a delay (see the next three entries)
+  START_SLEEP_MAX max amount of time to wait before starting the surprising
+      experience (once STARTed)
+  ESTIM_ON_MAX max amount of time in seconds for an ESTIMulating event
+      (but note it can be added to with additional random amounts, see code)
+  ESTIM_OFF_MAX max amount for time in seconds for the off cycle
+      (but this is also subject to addtions)
+  ADD_ON_PERCENT likelihood that you will add an addtion amount of time
+      to an ON cycle.  Repeats until it fails to add.
+  ADD_OFF_PERCENT likelihood that you will add an addtion amount of time
+      to an OFF cycle.  Repeats until it fails to add.
+'''
 FAILSAFE_START = 900
 MAX_SESSION_TIME = 70 * 60  # 70 minutes
 
@@ -96,7 +122,7 @@ class Surprise:
             self.stateStart = time.time()
             self.stateTime = secs
         if self.testMode is True:
-            secs = 0.05
+            secs = secs / 100
         self.timer = threading.Timer(secs, function)
         self.timer.start()
 
@@ -109,30 +135,28 @@ class Surprise:
         '''
         automationhat.relay.one.off()
         '''
-        failsafeStart = time.clock() + FAILSAFE_START
-        logging.error('waiting for start button or %d seconds' % failsafeStart)
         if self.testMode:
             failsafeStart = 0.5
+        else:
+            failsafeStart = FAILSAFE_START
+        logging.error('waiting for start button or %d seconds' % failsafeStart)
         self.failsafeTimer = threading.Timer(failsafeStart, self.turnOn)
         self.failsafeTimer.start()
 
     def failsafeStart(self):
         logging.error('failsafe start')
-        if self.timer:
-            self.timer.cancel()
-            self.timer = None
-        self.turnOn()
+        self.failsafeTimer = None
+        if self.state == 'Waiting':
+            self.startSurprise()
 
     def startSurprise(self):
         if self.failsafeTimer:
             self.failsafeTimer.cancel()
             self.filesafetimer = None
-
         '''
         if automationhat.is_automation_hat():
             automationhat.light.comms.write(1)
         '''
-
         random.shuffle(self.modes)
         self.sessionTimer = threading.Timer(self.maxSession, self.endSession)
         self.sessionTimer.start()
@@ -149,8 +173,9 @@ class Surprise:
     def keepAliveModeChange(self):
         ''' Change the mode every 25 minutes to prevent ET232 auto shutdown
         '''
-        self.queueModeChange()
-        self.setTimer(25*60, self.keepAliveModeChange, None)
+        if not self.testMode:
+            self.queueModeChange()
+            self.setTimer(25*60, self.keepAliveModeChange, None)
 
     def queueModeAndPowerChange(self):
         self.queueModeChange()
@@ -163,10 +188,24 @@ class Surprise:
         self.queue.put({'cmd': 'set_mode', 'value': mode})
         self.queue.put({'cmd': 'set_ma', 'value': maValue})
 
+    def calculateTime(self, max, percentage):
+        secs = self.delay(max)
+        amounts = [secs]
+        while random.randint(0, 100) < percentage:
+            more = self.delay(max)
+            secs += more
+            amounts.append(more)
+        if secs > 10 and random.randint(0, 100) < TEASE_PERCENT:
+            logging.error('  teasing!')
+            secs /= 10
+        logging.error('Interval %d seconds %s' % (secs, amounts))
+        self.sessionTime += secs
+        return secs
+
     def queueOn(self):
         onCommand = ['on_low', 'on_low', 'on_norm', 'on_norm', 'on_max']
         index = random.randint(0, len(onCommand) - 1)
-        logging.error('setting %s' % onCommand[index])
+        logging.error('Turning %s' % onCommand[index])
         self.queue.put({'cmd': onCommand[index]})
 
     def turnOn(self):
@@ -174,15 +213,7 @@ class Surprise:
             self.endSession()
             return
 
-        secs = self.delay(ESTIM_ON_MAX)
-        while random.randint(0, 100) < ADD_ON_PERCENT:
-            more = self.delay(ESTIM_ON_MAX)
-            logging.error('... adding %d' % more)
-            secs += more
-        if secs > 10 and random.randint(0, 100) < TEASE_PERCENT:
-            logging.error('  teasing!')
-            secs /= 10
-        self.sessionTime += secs
+        secs = self.calculateTime(ESTIM_ON_MAX, ADD_ON_PERCENT)
         self.onTime += secs
         self.setTimer(secs, self.turnOff, 'On')
         t = 0
@@ -209,17 +240,10 @@ class Surprise:
             self.endSession()
             return
 
-        secs = self.delay(ESTIM_OFF_MAX)
-        while random.randint(0, 100) < ADD_OFF_PERCENT:
-            more = self.delay(ESTIM_OFF_MAX)
-            logging.error('... adding %d' % more)
-            secs += more
-        if secs > 10 and random.randint(0, 100) < TEASE_PERCENT:
-            logging.error('  teasing!')
-            secs /= 10
-        self.sessionTime += secs
+        secs = self.calculateTime(ESTIM_OFF_MAX, ADD_OFF_PERCENT)
         self.offTime += secs
         self.setTimer(secs, self.turnOn, 'Off')
+        logging.error('Turning off')
         self.queue.put({'cmd': 'off'})
         '''
         automationhat.relay.one.off()

@@ -1,4 +1,9 @@
 #!/usr/bin/python3
+'''
+Top level invocation module for Surprise.  It defines the basic flow
+of page on the web server, sets up the clicker handlers, and handles
+the core state machine and locking (in process()).
+'''
 
 import argparse
 import logging
@@ -14,9 +19,16 @@ import pages
 
 TEST_MODE = False
 
+# Defines which modes will be used.  Once we have more
+# devices, we will need to introduce device specific dicts.
+# The list is randomize berfore use and it then sequences through
+# the randomized list.  You can include entries more than once
+# and they will be used more frequently.  I omit modes that are
+# not useful or unintersting.  Tune as desired.
 USEFUL_ET232_MODES=[1, 2, 3, 4, 6, 8, 9, 10, 11, 12, 13, 14, 15,
                     2, 3, 10, 12, 14]
 
+# Maps web page method to use for each state Surprise can be in.
 Page = {
     'Idle': pages.idle,
     'Waiting': pages.waiting,
@@ -75,7 +87,6 @@ class Processor():
         if TEST_MODE == True:
             print('process: arg: %s, state %s, locked %s' % (action, state, locked))
             print('queue has %d commands pending' % surprise.queue.qsize())
-
 
         if action == 'lock':
             surprise.lock()

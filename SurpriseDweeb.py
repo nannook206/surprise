@@ -9,46 +9,15 @@ and that will come in time.
 '''
 
 import asyncio
+from dweebClient import dweebClient, ET232ModeNames
 import logging
+import params
 import pprint
+import queue
 import random
 import sys
-import time
 import threading
-import queue
-from dweebClient import dweebClient, ET232ModeNames
-
-
-'''
-These variable largely define the duration of the surprising events.
-  FAILSAFE_START is the time from activating the application to when it starts
-      even if you are not ready (or lose access to the clicker...).
-  MAX_SESSION_TIME is the maximum time for a session.  Surprise turns off and
-      returns to idle after this much time in seconds.
-  DELAY_MIN minimum time for a delay (see the next three entries)
-  START_SLEEP_MAX max amount of time to wait before starting the surprising
-      experience (once STARTed)
-  ESTIM_ON_MAX max amount of time in seconds for an ESTIMulating event
-      (but note it can be added to with additional random amounts, see code)
-  ESTIM_OFF_MAX max amount for time in seconds for the off cycle
-      (but this is also subject to addtions)
-  ADD_ON_PERCENT likelihood that you will add an addtion amount of time
-      to an ON cycle.  Repeats until it fails to add.
-  ADD_OFF_PERCENT likelihood that you will add an addtion amount of time
-      to an OFF cycle.  Repeats until it fails to add.
-'''
-FAILSAFE_START = 900
-MAX_SESSION_TIME = 70 * 60  # 70 minutes
-
-# Random number bounds
-DELAY_MIN = 15   # must be less than following MAX values
-START_SLEEP_MAX = 180
-ESTIM_ON_MAX = 210
-ESTIM_OFF_MAX = 150
-
-ADD_ON_PERCENT = 30
-ADD_OFF_PERCENT = 20
-TEASE_PERCENT = 15
+import time
 
 
 def noop():
@@ -56,7 +25,7 @@ def noop():
 
 
 class Surprise:
-    def __init__(self, maxSession = MAX_SESSION_TIME, testMode=False,
+    def __init__(self, maxSession = params.MAX_SESSION_TIME, testMode=False,
                  modes=[1, 2, 3, 4, 6, 8, 9, 10, 11, 12, 13, 14, 15]):
         self.maxSession = maxSession
         self.sessionTime = 0
@@ -75,10 +44,12 @@ class Surprise:
         self.queue = queue.Queue()
         random.shuffle(self.modes)
         self.modeIndex = random.randint(0, len(self.modes)-1);
-        self.version = 'SurpriseDweeb v3.0 (maxSession %d)' % self.maxSession
+        logging.error('Surprise: maxSession %d, %d modes' % (maxSession, len(modes)))
 
         # Ensure the first command in the queue is a 'reserve'
+        self.queue.put({'cmd': 'release'})
         self.queue.put({'cmd': 'reserve'})
+        self.queue.put({'cmd': 'off'})
         t = threading.Thread(name='dweebClient', target=self.startDweeb)
         t.start()
 
@@ -92,13 +63,10 @@ class Surprise:
         '''
 
     def startDweeb(self):
-        dweeb = dweebClient(self.queue, max_a=23, max_b=45, test=True)
+        dweeb = dweebClient(self.queue, max_a=35, max_b=50, test=True)
         #pp = pprint.PrettyPrinter(indent=4)
         #pp.pprint(dweeb.devices)
         dweeb.start()
-
-    def getVersion(self):
-        return self.version
 
     def getState(self):
         return self.state
@@ -111,7 +79,7 @@ class Surprise:
             self.state, self.stateTime, int(timeRemaining)))
         return (self.state, self.stateTime, timeRemaining, self.sessionTime)
 
-    def delay(self, max, min=DELAY_MIN):
+    def delay(self, max, min=params.DELAY_MIN):
         secs = random.randint(min, max)
         return secs
 
@@ -138,7 +106,7 @@ class Surprise:
         if self.testMode:
             failsafeStart = 0.5
         else:
-            failsafeStart = FAILSAFE_START
+            failsafeStart = params.FAILSAFE_START
         logging.error('waiting for start button or %d seconds' % failsafeStart)
         self.failsafeTimer = threading.Timer(failsafeStart, self.turnOn)
         self.failsafeTimer.start()
@@ -160,7 +128,7 @@ class Surprise:
         random.shuffle(self.modes)
         self.sessionTimer = threading.Timer(self.maxSession, self.endSession)
         self.sessionTimer.start()
-        secs = self.delay(START_SLEEP_MAX)
+        secs = self.delay(params.START_SLEEP_MAX)
         self.offTime = secs
         self.onTime = 0
         self.setTimer(secs, self.turnOn, 'Starting')
@@ -198,7 +166,7 @@ class Surprise:
             more = self.delay(max)
             secs += more
             amounts.append(more)
-        if secs > 10 and random.randint(0, 100) < TEASE_PERCENT:
+        if secs > 10 and random.randint(0, 100) < params.TEASE_PERCENT:
             logging.error('  teasing!')
             secs /= 10
         logging.debug('Interval %d seconds %s' % (secs, amounts))
@@ -210,7 +178,8 @@ class Surprise:
             self.endSession()
             return
 
-        secs = self.calculateTime(ESTIM_ON_MAX, ADD_ON_PERCENT)
+        secs = self.calculateTime(params.ESTIM_ON_MAX,
+                                  params.ADD_ON_PERCENT)
         self.onTime += secs
         self.setTimer(secs, self.turnOff, 'On')
         t = 0
@@ -237,7 +206,8 @@ class Surprise:
             self.endSession()
             return
 
-        secs = self.calculateTime(ESTIM_OFF_MAX, ADD_OFF_PERCENT)
+        secs = self.calculateTime(params.ESTIM_OFF_MAX,
+                                  params.ADD_OFF_PERCENT)
         self.offTime += secs
         self.setTimer(secs, self.turnOn, 'Off')
         logging.error('Turning off')
@@ -276,6 +246,9 @@ class Surprise:
             self.timer = None
 
         self.queue.put({'cmd': 'off'})
+        # Was hoping to use this to grab knob values but it knocks the unit offline
+        # self.queue.put({'cmd': 'release'})
+        # self.queue.put({'cmd': 'reserve'})
         '''
         automationhat.relay.one.off()
         if automationhat.is_automation_hat():
@@ -293,7 +266,7 @@ class Surprise:
 
 
 def main(argv):
-    s = Surprise(maxSession=4200, testMode=True)
+    s = Surprise(maxSession=params.MAX_SESSION_TIME, testMode=True)
     t = threading.Thread(name='surprise', target=s.startWait)
     t.start()
 

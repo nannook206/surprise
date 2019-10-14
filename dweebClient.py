@@ -52,18 +52,40 @@ class dweebClient():
         with urllib.request.urlopen(webUrl) as response:
             html = response.read()
             self.devices = json.loads(html.decode("utf-8"))
+        dev = self.findDevice('ET 232')
+        self.devix = dev['devix']
+        logging.error('dweebClient init: devix = %s', dev['devix'])
+
+        self.hard_max_a = max_a
+        self.hard_max_b = max_b
+        logging.error('hardcoded max_a %d, max_b %d' % (max_a, max_b))
         self.max_a = max_a
         self.max_b = max_b
-        self.norm_a = max_a - 3
-        self.norm_b = max_b - 6
-        self.low_a = max_a - 6
-        self.low_b = max_b - 12
+        self.setLevelsFromState(dev['state'])
         self.seqNr = 1
-        self.devix = self.findDevice('ET 232')
         logging.error('dweebClient class instance created')
 
+    def setLevelsFromState(self, state):
+        '''
+        This is a typical JSON state response.  We'll receive its a parsed dict.
+        {"devix":6,"avail":"remote","mode":2,"status":"ready","level_a":27,"level_b":38,"ma":-31,"batt":0}'
+        '''
+        logging.debug('Current state: %s' % state)
+        level_a = int(state['level_a'])
+        level_b = int(state['level_b'])
+        if level_a <= self.hard_max_a:
+            self.max_a = level_a
+        if level_b <= self.hard_max_b:
+            self.max_b = level_b
+        logging.error('setting levels: max_a %d, max_b %d' % 
+                      (self.max_a, self.max_b))
+        self.norm_a = self.max_a - 4
+        self.norm_b = self.max_b - 7
+        self.low_a = self.max_a - 7
+        self.low_b = self.max_b - 14
+
     def start(self):
-        logging.info('dweebClient start')
+        logging.error('dweebClient start')
         try:
             asyncio.get_event_loop().run_until_complete(self.run())
         except RuntimeError as e:
@@ -71,24 +93,26 @@ class dweebClient():
             asyncio.new_event_loop().run_until_complete(self.run())
         
     async def run(self):
-        logging.info('dweebClient run')
+        logging.error('dweebClient run')
         try:
             async with websockets.connect(self.WSUrl) as websocket:
-                logging.info('websocket: %s', websocket)
+                logging.error('websocket: %s', websocket)
                 await self.producer_handler(websocket)
+            logging.error('dweebClient run past websockets.connect')
         except Exception as e:
             logging.error('websocket open failed.  already in use?')
             logging.error(e)
+        logging.error('dweebClient run completed')
 
     class NoDeviceFound(Exception):
         pass
 
     def findDevice(self, device):
-        for device in self.devices:
-            if device['name'] == 'ET 232':
-                return device['devix']
-        logging.fatal('No ET 232 found in device list')
-        raise NoDeviceFound
+        for dev in self.devices:
+            if dev['name'] == device:
+                return dev
+        logging.fatal('No %s found in device list' % device)
+        raise self.NoDeviceFound
 
     def invalidValue(self, cmd, value):
         if cmd == 'set_level_a':
@@ -113,19 +137,26 @@ class dweebClient():
         while True:
             logging.info('---- producer_handler called: qsize %d ----' % self.queue.qsize())
             command = self.queue.get(block=True)
+            logging.info('---- processing %s' % command)
             await self.processCommand(ws, command)
 
     async def processCommand(self, ws, command):
         if command == None:
-            logging.info('Commands finished.')
+            logging.error('Commands finished.')
             return
         else:
             logging.info('processing %s' % command)
             cmd = command['cmd']
-            if cmd == 'reserve' or cmd == 'release':
+            if cmd == 'reserve':
                 resp = await self.sendAndReceive(ws, cmd)
-                logging.info(resp)
+                logging.error(resp)
+                self.setLevelsFromState(json.loads(resp))
                 await asyncio.sleep(1.0)
+            elif cmd == 'release':
+                #resp = await self.sendAndReceive(ws, cmd)
+                #logging.error(resp)
+                #await asyncio.sleep(3.0)
+                pass
             elif cmd == 'on_low':
                 await self.setValue(ws, 'set_level_a', self.low_a)
                 await self.setValue(ws, 'set_level_b', self.low_b)
@@ -150,6 +181,7 @@ class dweebClient():
         cmd = {'event': event, 'value': value}
         logging.error('setValue: cmd: %s' % cmd)
         await self.sendCommand(ws, cmd)
+        await asyncio.sleep(0.1)
 
     async def sendAndReceive(self, ws, event):
         cmd = {'event': event}
@@ -168,6 +200,7 @@ class dweebClient():
 
 testCommands = [
     {'cmd': 'reserve'},
+    {'cmd': 'off'},
     {'cmd': 'on'},
     {'cmd': 'set_ma', 'value': -17},
     {'cmd': 'set_mode', 'value': ET232ModeCodes['ramp']},
@@ -211,6 +244,7 @@ def runTest():
 
 if __name__ == "__main__":
     print('running tests')
+    logging.basicConfig(level=logging.DEBUG)
     runTest()
     # asyncio.get_event_loop().run_until_complete(runTest())
     print('done running tests')

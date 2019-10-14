@@ -13,6 +13,7 @@ a callback to effect an application action on a button press.
 '''
 
 from evdev import InputDevice, categorize, ecodes
+import logging
 
 UP = [48]
 LEFT = [104]
@@ -34,27 +35,27 @@ class Clicker():
         }
 
     def setUp(self, func):
-        print('setUp')
+        logging.info('set Up function')
         for i in UP:
             self.keytable[i] = func
 
     def setLeft(self, func):
-        print('setLeft')
+        logging.info('set Left function')
         for i in LEFT:
             self.keytable[i] = func
 
     def setRight(self, func):
-        print('setRight')
+        logging.info('set Right function')
         for i in RIGHT:
             self.keytable[i] = func
 
     def setDown(self, func):
-        print('setDown')
+        logging.info('set Down function')
         for i in DOWN:
             self.keytable[i] = func
 
     def handler(self):
-        print('Clicker handler running')
+        logging.error('Clicker handler running')
         for event in self.device.read_loop():
             # trigger only on key down events
             if event.type == ecodes.EV_KEY and event.value == 1:

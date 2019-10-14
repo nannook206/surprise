@@ -6,27 +6,20 @@ the core state machine and locking (in process()).
 '''
 
 import argparse
+import clicker
 import logging
 import os
+import pages
+import params
+from syslog_rfc5424_formatter import RFC5424Formatter
+from SurpriseDweeb import Surprise
+from threading import Thread
 import time
 import tornado.ioloop
 import tornado.web
-import clicker
-from SurpriseDweeb import Surprise
-from threading import Thread
-import pages
 
 
 TEST_MODE = False
-
-# Defines which modes will be used.  Once we have more
-# devices, we will need to introduce device specific dicts.
-# The list is randomize berfore use and it then sequences through
-# the randomized list.  You can include entries more than once
-# and they will be used more frequently.  I omit modes that are
-# not useful or unintersting.  Tune as desired.
-USEFUL_ET232_MODES=[1, 2, 3, 4, 6, 8, 9, 10, 11, 12, 13, 14, 15,
-                    2, 3, 10, 12, 14]
 
 # Maps web page method to use for each state Surprise can be in.
 Page = {
@@ -85,8 +78,8 @@ class Processor():
         locked = surprise.locked
         logging.debug('process: arg: %s, state %s, locked %s' % (action, state, locked))
         if TEST_MODE == True:
-            print('process: arg: %s, state %s, locked %s' % (action, state, locked))
-            print('queue has %d commands pending' % surprise.queue.qsize())
+            logging.error('process: arg: %s, state %s, locked %s' % (action, state, locked))
+            logging.error('queue has %d commands pending' % surprise.queue.qsize())
 
         if action == 'lock':
             surprise.lock()
@@ -133,27 +126,46 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--maxSession', help='maximum time for session in minutes',
-                        default=70)
+                        default=params.MAX_SESSION_TIME/60)
     parser.add_argument('--verbose', '-v', help='maximum time for session in minutes',
                         default=False)
+    parser.add_argument('--test', '-t', help='enable test mode', default=False)
     args = parser.parse_args()
     maxSession = int(args.maxSession)*60
     if args.verbose:
         logLevel = logging.DEBUG
-    logging.basicConfig(filename='/var/log/surprise.log', level=logLevel,
-                        format='%(asctime)s %(levelname)s:%(message)s')
+    if args.test:
+        TEST_MODE=True
+        logLevel=logging.INFO
+    logger = logging.getLogger()
+    logger.setLevel(logLevel)
+    #syslog_handler = logging.handlers.SysLogHandler(address=('loghost', 514))
+    syslog_handler = logging.handlers.SysLogHandler(address='/dev/log')
+    syslog_handler.setLevel(logLevel)
+    #syslog_handler.setFormatter(RFC5424Formatter())
+    file_handler = logging.FileHandler(filename='/var/log/surprise.log')
+    file_handler.setLevel(logLevel)
+    file_handler.setFormatter(logging.Formatter('%(asctime)s %(levelname)s %(message)s'))
+    logger.addHandler(syslog_handler)
+    logger.addHandler(file_handler)
 
-    surprise = Surprise(maxSession, testMode=TEST_MODE, modes=USEFUL_ET232_MODES)
-    surpriseThread = Thread(name='surprise', target=surprise.idle)
-    surpriseThread.start()
+    logging.error('%s' % params.version)
 
-    clicker = clicker.Clicker("/dev/input/event0")
+    clicker = clicker.Clicker(params.clickerDevice)
     clickerThread = Thread(name='clicker', target=clicker.handler)
+
+    surprise = Surprise(maxSession, testMode=TEST_MODE,
+                        modes=params.USEFUL_ET232_MODES)
+    surpriseThread = Thread(name='surprise', target=surprise.idle)
+
+    surpriseThread.start()
+    logging.error('SurpriseThread running')
     clickerThread.start()
+    logging.error('clickerThread running')
 
     processor = Processor(clicker)
 
     app = make_app(processor.process)
-    app.listen(8888)
-    logging.error('%s: listening on 8888' % surprise.getVersion())
+    app.listen(params.port)
+    logging.error('%s: listening on %d' % (params.version, params.port))
     tornado.ioloop.IOLoop.current().start()

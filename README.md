@@ -25,25 +25,24 @@ The basic states are:
 My clicker remote is set up as follows:
 * Up - Activate, then Start
 * Left - Reset (stop)
-* Right - Toggle on/off (only before Started)
+* Right - Cycle (max_a, max_b, max_both) (only before Started)
+ - when in max_a, max_b, or max_both, Up increases the max intensity
+ and Down decreases the max intensity
 * Down - Lock
 
 So far we have successfully used this to control an Erostek
 ET232 controller with very good success.
 
 The software:
-* runSurpriseDweeb.py
+* runSurprise.py
 Top level invocation module for Surprise.  It defines the basic flow
 of page on the web server, sets up the clicker handlers, and handles
 the core state machine and locking (in process()).
 Defines which modes will be used:
-```
-USEFUL_ET232_MODES=[1, 2, 3, 4, 6, 8, 9, 10, 11, 12, 13, 14, 15,
-                    2, 3, 10, 12, 14]
-```
-* SurpriseDweeb.py
+* Surprise.py
 This is the module that does all the surprising behavior.  Lots of use
 of the random module to provide a unique experience every time.
+* params.py
 There are lots of parameters here that you may want to tweak (and yes
 we should have a way to more easily set these without changing the code
 and that will come in time.
@@ -54,14 +53,14 @@ MAX_SESSION_TIME = 70 * 60  # 70 minutes
 # Random number bounds
 DELAY_MIN = 15   # must be less than following MAX values
 START_SLEEP_MAX = 180
-ESTIM_ON_MAX = 210
-ESTIM_OFF_MAX = 150
+ESTIM_ON_MAX = 180
+ESTIM_OFF_MAX = 120
 
 ADD_ON_PERCENT = 30
 ADD_OFF_PERCENT = 20
-TEASE_PERCENT = 15
+TEASE_PERCENT = 20
 ```
-* Key Parameters from SurpriseDweeb.py
+* Key Parameters from params.py
   - FAILSAFE_START
 is the time from activating the application to when it starts
 even if you are not ready (or lose access to the clicker...).
@@ -81,24 +80,25 @@ max amount for time in seconds for the off cycle (but this is also subject to ad
 likelihood that you will add an addtion amount of time to an ON cycle.  Repeats until it fails to add.
   - ADD_OFF_PERCENT
 likelihood that you will add an addtion amount of time to an OFF cycle.  Repeats until it fails to add.
+* buttshockClient.py
+Class and methods to support talking directly to the Estim
+device via the buttshock.io library.
 * dweebClient.py
 Class and methods to support talking to DeviceWeb service using
-websockets.  Currenly assumse that dweeb is running on the same
+websockets.  Currenly assumes that dweeb is running on the same
 host and uses localhost to access it, but it could be on another
 host.  Currently a code change but could be easily parameterized.
 Its pretty specific to the ET232 but can be easily generalise to
 other devices and I am welcome to adding additional device support
 here.
 
-  Pay attention to the level setting in __init__.  I set a max, which
-we do not exceed, a normal and a low (teasing) level.
 * surprise.service
 systemd configuration file to start Surprise daemon
 * dweeb.service
 systemd configuration file to start DeviceWeb (dweeb) daemon
 * run_surprise
 Called from system startup (e.g. systemd) to start the Surprise application
-*run_dweeb
+* run_dweeb
 Called from system startup (e.g. systemd) to start the DeviceWeb (dweeb) application
 * clicker.py
 This class provide support for a button clicker device to actuate the
@@ -110,6 +110,6 @@ Just a simple program to test the interface from my Python to dweeb.
 Included in case it will help others with debugging other devices.
 
 I try to provide a good amount of diagnosics from all the modules.  I play with output
-of ./SurpriseDweeb.py and grep to get an idea of what the parameters are going to do.
+of ./Surprise.py and grep to get an idea of what the parameters are going to do.
 
 For testing, you should be able invoke individual modules for functional unit testing.

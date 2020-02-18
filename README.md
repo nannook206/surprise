@@ -1,7 +1,9 @@
 # Surprise - A random personal experience
 
 This program/service provide a randomized device activation
-experience.  It has been integrated with DeviceWeb (dweeb,
+experience.  It has been integrated with
+(buttshock.io, https://github.com/nannook206/buttshock-py) to provide
+direct serial control of Estim devices and DeviceWeb (dweeb,
 https://fetlife.com/groups/165887) which provides interfacing
 logic and control to a wide variety of devices with a web and
 websockets interface thanks to its creator.

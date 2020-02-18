@@ -1,4 +1,4 @@
-+ Surprise - A random personal experience
+# Surprise - A random personal experience
 
 This program/service provide a randomized device activation
 experience.  It has been integrated with DeviceWeb (dweeb,

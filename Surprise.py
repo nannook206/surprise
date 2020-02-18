@@ -9,10 +9,11 @@ and that will come in time.
 '''
 
 import asyncio
-from dweebClient import deviceHandler, modeName
 import logging
 import params
 from playSound import playSound
+import buttshockClient as buttshock
+import dweebClient as dweeb
 import queue
 import random
 import sys
@@ -47,16 +48,25 @@ class Surprise:
         self.modeIndex = random.randint(0, len(self.modes)-1);
         logging.error('Surprise: maxSession %d, %d modes' % (maxSession, len(modes)))
 
+        if params.estimHandler == 'buttshock':
+            self.device = buttshock.deviceHandler(self.queue, port=params.estimDevice, test=True)
+        elif params.estimHandler == 'dweeb':
+            self.device = dweeb.deviceHandler(self.queue, port=params.estimDevice, test=True)
+
         self.queue.put({'cmd': 'release'})
         self.queue.put({'cmd': 'reserve'})
         self.queue.put({'cmd': 'off'})
+
         t = threading.Thread(name='deviceHandler', target=self.startDevice)
         t.start()
 
         self.keepAliveModeChange()
 
     def startDevice(self):
-        self.device = deviceHandler(self.queue, port=params.estimDevice, test=True)
+        #if params.estimHandler == 'buttshock':
+        #    self.device = buttshock.deviceHandler(self.queue, port=params.estimDevice, test=True)
+        #elif params.estimHandler == 'dweeb':
+        #    self.device = dweeb.deviceHandler(self.queue, port=params.estimDevice, test=True)
         self.device.start()
 
     def getState(self):
@@ -141,17 +151,17 @@ class Surprise:
             newMode = self.queueModeChange()
             onCommand = ['on_low', 'on_low', 'on_norm', 'on_norm', 'on_max']
             index = random.randint(0, len(onCommand) - 1)
-            maValue = random.randint(-50, 50)
-            self.queue.put({'cmd': 'set_ma', 'value': maValue})
-            logging.error('Turning %s, %s, MA %d' % (onCommand[index], newMode, maValue))
+            logging.error('Turning %s, %s' % (onCommand[index], newMode))
             self.queue.put({'cmd': onCommand[index]})
             if params.announcePower is True:
                 playSound(onCommand[index])
 
     def queueModeChange(self):
         mode = self.nextMode()
+        maValue = self.device.randomMA()
+        self.queue.put({'cmd': 'set_ma', 'value': maValue})
         self.queue.put({'cmd': 'set_mode', 'value': mode})
-        return 'Mode %s' % ModeNames[mode]
+        return 'Mode %s, MA %d' % (mode, maValue)
 
     def calculateTime(self, max, percentage):
         secs = self.delay(max)
@@ -218,20 +228,19 @@ class Surprise:
 
     def toggle(self):
         if self.state == 'Idle' or self.idleOn == 'AB':
-            logging.error('Turning on max a')
             self.state = 'IdleOn'
             self.idleOn = 'A'
-            self.queueModeChange()
+            logging.error('Turning on max a, %s' %self.queueModeChange())
             self.queue.put({'cmd': 'on_max_a'})
             playSound('max-a')
         elif self.idleOn == 'A':
-            logging.error('Turning on max b')
             self.idleOn = 'B'
+            logging.error('Turning on max b')
             self.queue.put({'cmd': 'on_max_b'})
             playSound('max-b')
         elif self.idleOn == 'B':
-            logging.error('Turning on max a and b')
             self.idleOn = 'AB'
+            logging.error('Turning on max a and b')
             self.queue.put({'cmd': 'on_max'})
             playSound('a-and-b')
         else:

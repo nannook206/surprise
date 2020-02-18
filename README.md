@@ -23,12 +23,18 @@ The basic states are:
 (stopping) the service, or further on/off cycles
 
 My clicker remote is set up as follows:
+
+When Idle, Started:
 * Up - Activate, then Start
-* Left - Reset (stop)
-* Right - Cycle (max_a, max_b, max_both) (only before Started)
- - when in max_a, max_b, or max_both, Up increases the max intensity
- and Down decreases the max intensity
+* Left - Reset (go to Idle)
+* Right - Cycle (Max_A -> Max_B -> Max_Both)
 * Down - Lock
+
+When in Max_A, Max_B, Max_Both:
+* Up - Increase max intensity
+* Left - Reset (go to Idle)
+* Right - Cycle (Max_A -> Max_B -> Max_Both)
+* Down - Decrease max intensity
 
 So far we have successfully used this to control an Erostek
 ET232 controller with very good success.

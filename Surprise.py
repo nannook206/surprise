@@ -145,11 +145,11 @@ class Surprise:
     def queueModeAndPowerChange(self):
         if self.state == 'On':
             newMode = self.queueModeChange()
-            index = random.randint(0, len(params.onCommand) - 1)
-            logging.info('Turning %s, %s' % (onCommand[index], newMode))
-            self.queue.put({'cmd': onCommand[index]})
+            level = params.onCommand[random.randint(0, len(params.onCommand) - 1)]
+            logging.info('Turning %s, %s' % (level, newMode))
+            self.queue.put({'cmd': level})
             if params.announcePower is True:
-                playSound(onCommand[index])
+                playSound(level)
 
     def queueModeChange(self):
         mode = self.nextMode()

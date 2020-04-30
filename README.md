@@ -33,10 +33,15 @@ When Idle, Started:
 * Down - Lock
 
 When in Max_A, Max_B, Max_Both:
-* Up - Increase max intensity
+* Up - Increase max intensity (about 1%)
 * Left - Reset (go to Idle)
 * Right - Cycle (Max_A -> Max_B -> Max_Both)
-* Down - Decrease max intensity
+* Down - Decrease max intensity (about 1%)
+
+When Locked:
+* Up - Increase Max_A and Max_B (about 1%)
+* Middle (if present) - lock max minimums (can only increase the minimum max)
+* Down - Decrease Max_A and Max_B (about 1%)
 
 So far we have successfully used this to control an Erostek
 ET232 controller with very good success.

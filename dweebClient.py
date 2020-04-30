@@ -73,11 +73,11 @@ class deviceHandler():
             #pp.pprint(self.device.devices)
         dev = self.findDevice('ET 232')
         self.devix = dev['devix']
-        logging.error('deviceClient init: devix = %s', dev['devix'])
+        logging.info('deviceClient init: devix = %s', dev['devix'])
 
         self.hard_max_a = max_a
         self.hard_max_b = max_b
-        logging.error('hardcoded max_a %d, max_b %d' % (max_a, max_b))
+        logging.info('hardcoded max_a %d, max_b %d' % (max_a, max_b))
         self.max_a = max_a
         self.max_b = max_b
         self.ma_low = -50
@@ -85,7 +85,7 @@ class deviceHandler():
         self.setLevelsFromState(dev['state'])
         self.seqNr = 1
 
-        logging.error('deviceClient class instance created')
+        logging.info('deviceClient class instance created')
 
     def modeCode(self, name):
         global ModeCodes
@@ -99,7 +99,7 @@ class deviceHandler():
         This is a typical JSON state response.  We'll receive its a parsed dict.
         {"devix":6,"avail":"remote","mode":2,"status":"ready","level_a":27,"level_b":38,"ma":-31,"batt":0}'
         '''
-        logging.error('Current state: %s' % state)
+        logging.info('Current state: %s' % state)
         level_a = int(state['level_a'])
         level_b = int(state['level_b'])
         self.setLevels(level_a, level_b)
@@ -108,7 +108,7 @@ class deviceHandler():
         self.setLevels(self.max_a + delta_a, self.max_b + delta_b)
 
     def setLevels(self, max_a, max_b):
-        logging.error('set levels: max_a %d, max_b %d' % 
+        logging.info('set levels: max_a %d, max_b %d' % 
                       (max_a, max_b))
         if max_a < 0:
             max_a = 0
@@ -122,15 +122,15 @@ class deviceHandler():
         self.norm_b = int(self.max_b * 0.88)
         self.low_a = int(self.max_a * 0.75)
         self.low_b = int(self.max_b * 0.75)
-        logging.error('setting levels: max_a %d, max_b %d' % 
+        logging.info('setting levels: max_a %d, max_b %d' % 
                       (self.max_a, self.max_b))
-        logging.error('setting levels: norm_a %d, norm_b %d' % 
+        logging.info('setting levels: norm_a %d, norm_b %d' % 
                       (self.norm_a, self.norm_b))
-        logging.error('setting levels: low_a %d, low_b %d' % 
+        logging.info('setting levels: low_a %d, low_b %d' % 
                       (self.low_a, self.low_b))
 
     def start(self):
-        logging.error('deviceClient start')
+        logging.info('deviceClient start')
         try:
             asyncio.get_event_loop().run_until_complete(self.run())
         except RuntimeError as e:
@@ -138,14 +138,14 @@ class deviceHandler():
             asyncio.new_event_loop().run_until_complete(self.run())
         
     async def run(self):
-        logging.error('deviceClient run')
+        logging.info('deviceClient run')
         #try:
         while True:
             async with websockets.connect(self.WSUrl) as websocket:
-                logging.error('websocket: %s, %s' % (self.WSUrl, websocket))
+                logging.info('websocket: %s, %s' % (self.WSUrl, websocket))
                 self.websocket = websocket
 
-                logging.error('calling producer_handler')
+                logging.info('calling producer_handler')
                 await self.producer_handler(websocket)
             logging.error('websocket: closing')
             while not ws.closed:
@@ -195,7 +195,7 @@ class deviceHandler():
         '''Stub routine for later.'''
         while True:
             message = await self.websocket.recv()
-            logging.error('WSReader received: %s' % message)
+            logging.info('WSReader received: %s' % message)
             j = json.loads(message)
             if j is not None:
                 await self.setLevelsFromState(j)
@@ -210,12 +210,12 @@ class deviceHandler():
             if cmd == 'reserve':
                 #await self.sendCommandStr(ws, cmd)
                 resp = await self.sendAndReceive(ws, cmd)
-                logging.error(resp)
+                logging.info(resp)
                 self.setLevelsFromState(json.loads(resp))
                 await asyncio.sleep(1.0)
             elif cmd == 'release':
                 #resp = await self.sendAndReceive(ws, cmd)
-                #logging.error(resp)
+                #logging.info(resp)
                 #await asyncio.sleep(3.0)
                 pass
             elif cmd == 'on_low':
@@ -259,7 +259,7 @@ class deviceHandler():
 
     async def setValue(self, ws, event, value):
         cmd = {'event': event, 'value': value}
-        logging.error('setValue: cmd: %s' % cmd)
+        logging.info('setValue: cmd: %s' % cmd)
         await self.sendCommand(ws, cmd)
 
     async def sendAndReceive(self, ws, event):

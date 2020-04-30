@@ -46,7 +46,7 @@ class Surprise:
         self.queue = queue.Queue()
         random.shuffle(self.modes)
         self.modeIndex = random.randint(0, len(self.modes)-1);
-        logging.error('Surprise: maxSession %d, %d modes' % (maxSession, len(modes)))
+        logging.info('Surprise: maxSession %d, %d modes' % (maxSession, len(modes)))
 
         if params.estimHandler == 'buttshock':
             self.device = buttshock.deviceHandler(self.queue, port=params.estimDevice, test=True)
@@ -63,10 +63,6 @@ class Surprise:
         self.keepAliveModeChange()
 
     def startDevice(self):
-        #if params.estimHandler == 'buttshock':
-        #    self.device = buttshock.deviceHandler(self.queue, port=params.estimDevice, test=True)
-        #elif params.estimHandler == 'dweeb':
-        #    self.device = dweeb.deviceHandler(self.queue, port=params.estimDevice, test=True)
         self.device.start()
 
     def getState(self):
@@ -85,15 +81,15 @@ class Surprise:
         return secs
 
     def setTimer(self, secs, function, state):
-        logging.error('setTimer %s for %.1f' % (state, secs))
+        logging.info('setTimer %s for %.1f' % (state, secs))
+        if self.testMode is True:
+            secs = secs / 100
         timer = threading.Timer(secs, function)
         if state:
             self.timer = timer
             self.state = state
             self.stateStart = time.time()
             self.stateTime = secs
-        if self.testMode is True:
-            secs = secs / 100
         timer.start()
 
     def idle(self):
@@ -108,13 +104,13 @@ class Surprise:
             failsafeStart = 0.5
         else:
             failsafeStart = params.FAILSAFE_START
-        logging.error('waiting for start button or %d seconds' % failsafeStart)
+        logging.info('waiting for start button or %d seconds' % failsafeStart)
         self.failsafeTimer = threading.Timer(failsafeStart, self.turnOn)
         self.failsafeTimer.start()
         playSound('activated')
 
     def failsafeStart(self):
-        logging.error('failsafe start')
+        logging.info('failsafe start')
         self.failsafeTimer = None
         if self.state == 'Waiting':
             self.startSurprise()
@@ -141,7 +137,7 @@ class Surprise:
         ''' Change the mode every keepaliveInterval seconds
             to prevent ET232 auto shutdown if we are Idle.
         '''
-        logging.error('keepAliveModeChange (state %s)' % self.state)
+        logging.info('keepAliveModeChange (state %s)' % self.state)
         if self.state == 'Idle':
             self.queueModeChange()
         self.setTimer(params.keepaliveInterval, self.keepAliveModeChange, None)
@@ -149,9 +145,8 @@ class Surprise:
     def queueModeAndPowerChange(self):
         if self.state == 'On':
             newMode = self.queueModeChange()
-            onCommand = ['on_low', 'on_low', 'on_norm', 'on_norm', 'on_max']
-            index = random.randint(0, len(onCommand) - 1)
-            logging.error('Turning %s, %s' % (onCommand[index], newMode))
+            index = random.randint(0, len(params.onCommand) - 1)
+            logging.info('Turning %s, %s' % (onCommand[index], newMode))
             self.queue.put({'cmd': onCommand[index]})
             if params.announcePower is True:
                 playSound(onCommand[index])
@@ -171,7 +166,7 @@ class Surprise:
             secs += more
             amounts.append(more)
         if secs > 10 and random.randint(0, 100) < params.TEASE_PERCENT:
-            logging.error('  teasing!')
+            logging.info('  teasing!')
             secs /= 10
         logging.debug('Interval %d seconds %s' % (secs, amounts))
         self.sessionTime += secs
@@ -182,9 +177,13 @@ class Surprise:
             self.queue.put({'cmd': 'adjust_a', 'value': delta})
         elif self.idleOn == 'B':
             self.queue.put({'cmd': 'adjust_b', 'value': delta})
-        elif self.idleOn == 'AB':
-            self.queue.put({'cmd': 'adjust_a', 'value': delta})
-            self.queue.put({'cmd': 'adjust_b', 'value': delta})
+        else:  # 'AB' or while locked
+            if self.state == 'On':
+                self.queue.put({'cmd': 'adjust_a', 'value': delta})
+                self.queue.put({'cmd': 'adjust_b', 'value': delta})
+            else:
+                self.queue.put({'cmd': 'adjust_maximum', 'value': delta})
+
 
     def turnOn(self):
         if self.sessionTime > self.maxSession:
@@ -198,7 +197,7 @@ class Surprise:
         t = 0
         while (secs - t) > 120:
             t = random.randint(max(60,t),secs-20)
-            logging.error('scheduling mode/power change after %d' % t)
+            logging.info('scheduling mode/power change after %d' % t)
             self.setTimer(t, self.queueModeAndPowerChange, None)
 
         self.queueModeAndPowerChange()
@@ -218,7 +217,7 @@ class Surprise:
                                   params.ADD_OFF_PERCENT)
         self.offTime += secs
         self.setTimer(secs, self.turnOn, 'Off')
-        logging.error('Turning off')
+        logging.info('Turning off')
         self.queue.put({'cmd': 'off'})
 
     def reallyTurnOff(self):
@@ -230,26 +229,32 @@ class Surprise:
         if self.state == 'Idle' or self.idleOn == 'AB':
             self.state = 'IdleOn'
             self.idleOn = 'A'
-            logging.error('Turning on max a, %s' %self.queueModeChange())
+            logging.info('Turning on max a, %s' %self.queueModeChange())
             self.queue.put({'cmd': 'on_max_a'})
             playSound('max-a')
         elif self.idleOn == 'A':
             self.idleOn = 'B'
-            logging.error('Turning on max b')
+            logging.info('Turning on max b')
             self.queue.put({'cmd': 'on_max_b'})
             playSound('max-b')
         elif self.idleOn == 'B':
             self.idleOn = 'AB'
-            logging.error('Turning on max a and b')
+            logging.info('Turning on max a and b')
             self.queue.put({'cmd': 'on_max'})
             playSound('a-and-b')
         else:
             logging.error('Bad state %s in toggle' % self.idleOn)
 
     def lock(self):
-        logging.error('Locked.')
+        logging.info('Locked.')
         self.locked = True
         playSound('locked')
+        self.setMiniumu()
+
+    def setMinimum(self, reset=False):
+        logging.info('setting minimums')
+        # (set_minimum, True) resets minimum to 0
+        self.queue.put({'cmd': 'set_minimum', 'value': reset})
 
     def endSession(self):
         self.state = 'Idle'
@@ -264,15 +269,13 @@ class Surprise:
             self.timer = None
 
         self.queue.put({'cmd': 'off'})
-        # Was hoping to use this to grab knob values but it knocks the unit offline
-        # self.queue.put({'cmd': 'release'})
-        # self.queue.put({'cmd': 'reserve'})
+        self.setMinimum(True)
 
         self.idleOn = False
         self.locked = False
 
-        logging.error('--------------- Ending session ------------------')
-        logging.error('On time %d, off time %d' % (self.onTime, self.offTime))
+        logging.info('--------------- Ending session ------------------')
+        logging.info('On time %d, off time %d' % (self.onTime, self.offTime))
         self.sessionTime = 0
         self.onTime = 0
         self.offTime = 0

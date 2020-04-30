@@ -3,12 +3,13 @@ cd /home/pi/surprise
 
 until test $(ps ax | grep -c rsyslogd) -gt 1; do sleep 2; done
 logger run_surprise found rsyslogd
-until $(netstat -nat | grep -q '0.0.0.0:31280.*LISTEN'); do sleep 2; done
-logger run_surprise found dweeb server
+#dweeb until $(netstat -nat | grep -q '0.0.0.0:31280.*LISTEN'); do sleep 2; done
+#dweeb logger run_surprise found dweeb server
 until test -c /dev/input/event0; do sleep 2; done
 logger run_surprise found clicker device
-sleep 3
+sleep 1
 while true; do 
-	./runSurpriseDweeb.py
+	#dweeb ./runSurpriseDweeb.py -v True
+	./runSurprise.py -v True
 	sleep 2
 done

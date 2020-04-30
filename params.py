@@ -1,7 +1,7 @@
 '''
 Surprise params file
 '''
-version = 'Surprise v4.0 (2020-01-22)'
+version = 'Surprise v4.1 (2020-04-29)'
 
 '''
 These variable largely define the duration of the surprising events.
@@ -35,6 +35,20 @@ ESTIM_OFF_MAX = 120
 ADD_ON_PERCENT = 25
 ADD_OFF_PERCENT = 18
 TEASE_PERCENT = 20
+
+# multipliers for levels off of max value
+MAX_PLUS_LEVEL = 1.1
+NORMAL_LEVEL = 0.88
+LOW_LEVEL = 0.73
+
+# The maximum output value per channel we will allow the user to set
+HARD_MAX_A = 105
+HARD_MAX_B = 135
+
+# Defines the set of On states to be chosen from at random.
+# By changing the contents of this list, you can vary the frequency of various
+# intensities being used.  Each mode change will randomly choose a new power level.
+onCommand = ['on_low', 'on_low', 'on_norm', 'on_norm', 'on_max', 'on_max_plus']
 
 '''
 Defines which modes will be used.  Once we have more

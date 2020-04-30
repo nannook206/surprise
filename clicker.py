@@ -14,11 +14,21 @@ a callback to effect an application action on a button press.
 
 from evdev import InputDevice, categorize, ecodes
 import logging
+import sys
 
-UP = [48]
+# Key mappings for original pointer
+#UP = [48]
+#LEFT = [104]
+#RIGHT = [109]
+#DOWN = [1, 42]
+
+# Key mappings for ByEasy
+UP = [1]
 LEFT = [104]
 RIGHT = [109]
-DOWN = [1, 42]
+DOWN = [48]
+MIDDLE = [42]
+
 
 def noop(code):
     print('Clicker code is %d' % code)
@@ -54,15 +64,31 @@ class Clicker():
         for i in DOWN:
             self.keytable[i] = func
 
-    def handler(self):
-        logging.error('Clicker handler running')
+    def setMiddle(self, func):
+        logging.info('set Middle function')
+        self.setKeyFunction(MIDDLE, func)
+
+    def setKeyFunction(self, keys, func):
+        for i in keys:
+            self.keytable[i] = func
+
+    def handler(self, testing=False):
+        logging.info('Clicker handler running')
         for event in self.device.read_loop():
             # trigger only on key down events
             if event.type == ecodes.EV_KEY and event.value == 1:
                 if event.code in self.keytable:
                     self.keytable[event.code](event.code)
+                elif testing:
+                    noop(event.code)
 
+
+def main(argv):
+    device = "/dev/input/event0"
+    if len(argv) > 1:
+        device = argv[1]
+    clicker = Clicker(device)
+    clicker.handler(testing=True)
 
 if __name__ == "__main__":
-    clicker = Clicker("/dev/input/event0")
-    clicker.handler()
+    main(sys.argv)

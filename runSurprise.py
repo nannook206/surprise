@@ -12,7 +12,7 @@ import os
 import pages
 import params
 from Surprise import Surprise
-#from syslog_rfc5424_formatter import RFC5424Formatter
+from syslog_rfc5424_formatter import RFC5424Formatter
 from threading import Thread
 import time
 import tornado.ioloop
@@ -57,34 +57,41 @@ class Processor():
         clicker.setLeft(self.clickLeft)
         clicker.setRight(self.clickRight)
         clicker.setDown(self.clickDown)
+        clicker.setMiddle(self.clickMiddle)
 
     def clickUp(self, code):
-        logging.error('clickUp')
+        logging.info('clickUp')
         self.process('up')
 
     def clickLeft(self, code):
-        logging.error('clickLeft')
+        logging.info('clickLeft')
         self.process('left')
 
     def clickRight(self, code):
-        logging.error('clickRight')
+        logging.info('clickRight')
         self.process('right')
 
     def clickDown(self, code):
-        logging.error('clickDown')
+        logging.info('clickDown')
         self.process('down')
+
+    def clickMiddle(self, code):
+        logging.info('clickMiddle')
+        self.process('middle')
 
     def process(self, action):
         state = surprise.getState()
         locked = surprise.locked
-        logging.debug('process: arg: %s, state %s, locked %s' % (action, state, locked))
         if TEST_MODE == True:
-            logging.error('process: arg: %s, state %s, locked %s' % (action, state, locked))
-            logging.error('queue has %d commands pending' % surprise.queue.qsize())
+            logging.info('process: arg: %s, state %s, locked %s, queued %d' % (
+                          action, state, locked, surprise.queue.qsize()))
+        else:
+            logging.debug('process: arg: %s, state %s, locked %s, queued %d' % (
+                          action, state, locked, surprise.queue.qsize()))
 
         if state == 'Idle':
             if action == 'activate' or action == 'up':
-                logging.error('===== activating surprise =====')
+                logging.info('===== activating surprise =====')
                 surprise.startWait()
             elif action == 'off':
                 surprise.reallyTurnOff()
@@ -94,10 +101,10 @@ class Processor():
                 surprise.endSession()
         elif state == 'IdleOn':
             if action == 'up':
-                logging.error('increasing max')
+                logging.info('increasing max')
                 surprise.adjustLevels(1)
             elif action == 'down':
-                logging.error('decreasing max')
+                logging.info('decreasing max')
                 surprise.adjustLevels(-1)
             elif action == 'right':
                 surprise.toggle()
@@ -105,24 +112,34 @@ class Processor():
                 surprise.endSession()
         elif state == 'Waiting':
             if action == 'up':
-                logging.error('===== starting surprise =====')
+                logging.info('===== starting surprise =====')
                 surprise.startSurprise()
             elif (action == 'reset' or action == 'left') and not locked:
-                logging.error('reseting surprise service')
+                logging.info('reseting surprise service')
                 surprise.endSession()
             elif action == 'down':
                 surprise.lock()
         elif state == 'Starting' or state == 'On' or state == 'Off':
-            if (action == 'reset' or action == 'left') and not locked:
-                logging.error('reseting surprise service')
-                surprise.endSession()
-            elif action == 'down':
-                surprise.lock()
+            if not locked:
+                if action == 'reset' or action == 'left':
+                    logging.info('reseting surprise service')
+                    surprise.endSession()
+                elif action == 'down':
+                    surprise.lock()
+            else:
+                if action == 'up':
+                    logging.info('increasing max')
+                    surprise.adjustLevels(1)
+                elif action == 'down':
+                    logging.info('decreasing max')
+                    surprise.adjustLevels(-1)
+                elif action == 'middle':
+                    logging.info('setting miniumm')
+                    surprise.setMinimum()
 	    
         state = surprise.getState()
         logging.debug('state is %s' % state)
         time.sleep(0.5)   # Give time for beep to play.
-        # print('process: state now %s, locked %s' % (state, surprise.locked))
         return(state)
 
 
@@ -161,7 +178,7 @@ if __name__ == "__main__":
     logger.addHandler(syslog_handler)
     logger.addHandler(file_handler)
 
-    logging.error('%s ------------------------------------------' % params.version)
+    logging.info('%s ------------------------------------------' % params.version)
 
     clicker = clicker.Clicker(params.clickerDevice)
     clickerThread = Thread(name='clicker', target=clicker.handler)
@@ -171,13 +188,13 @@ if __name__ == "__main__":
     surpriseThread = Thread(name='surprise', target=surprise.idle)
 
     surpriseThread.start()
-    logging.error('SurpriseThread running')
+    logging.info('SurpriseThread running')
     clickerThread.start()
-    logging.error('clickerThread running')
+    logging.info('clickerThread running')
 
     processor = Processor(clicker)
 
     app = make_app(processor.process)
     app.listen(params.port)
-    logging.error('%s: listening on %d' % (params.version, params.port))
+    logging.info('%s: listening on %d' % (params.version, params.port))
     tornado.ioloop.IOLoop.current().start()

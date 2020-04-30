@@ -7,7 +7,7 @@ import asyncio
 import fcntl
 import json
 import logging
-import pprint
+import params
 import queue
 import random
 import sys
@@ -59,7 +59,7 @@ class deviceHandler():
         pass
 
 
-    def __init__(self, deviceQ, max_a=105, max_b=135,
+    def __init__(self, deviceQ, max_a=params.HARD_MAX_A, max_b=params.HARD_MAX_B,
                        port='/dev/ttyUSB0',
                        test=False):
         logging.info('creating buttshock deviceHandler instance')
@@ -72,14 +72,16 @@ class deviceHandler():
 
         self.hard_max_a = max_a
         self.hard_max_b = max_b
-        logging.error('hardcoded max_a %d, max_b %d' % (max_a, max_b))
+        logging.info('hardcoded max_a %d, max_b %d' % (max_a, max_b))
         self.max_a = max_a
         self.max_b = max_b
+        self.max_a_min = 0
+        self.max_b_min = 0
         self.ma_low = 0
         self.ma_high = 255
         self.setLevelsFromDevice()
         self.seqNr = 1
-        logging.error('deviceClient class instance created')
+        logging.info('deviceClient class instance created')
 
     def connect(self):
         # Lock the serial port while we use it, wait a few seconds
@@ -91,22 +93,22 @@ class deviceHandler():
                     fcntl.flock(et232.port.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
                     connected = True
             except Exception as e:
-                print(e)
+                logging.error(e)
                 et232.close()
-                sleep(.2)
+                sleep(0.2)
                 continue
 
             if (not connected):
-                print ("Connect Failed")
+                logging.error("Connect Failed")
                 continue
 
-            print ("[+] connected")
+            logging.info("[+] connected")
             try:
                 et232.perform_handshake()
-                print ("[+] handshake ok")
+                logging.info("[+] handshake ok")
                 break
             except Exception as e:
-                print(e)
+                logging.error(e)
                 et232.close()
                 sleep(1)
 
@@ -119,39 +121,50 @@ class deviceHandler():
     def randomMA(self):
         return random.randint(self.ma_low, self.ma_high)
 
+    def setMinimum(self, zero=False):
+        if zero:
+            self.max_a_min = 0
+            self.max_b_min = 0
+        else:
+            self.max_a_min = self.max_a
+            self.max_b_min = self.max_b
+
     def setLevelsFromDevice(self):
         level_a = self.et232.read(0x8c)
         level_b = self.et232.read(0x88)
-        logging.error('Current levels: chA %d, chB %d' % (level_a, level_b))
+        logging.info('Current levels: chA %d, chB %d' % (level_a, level_b))
         self.setLevels(level_a, level_b)
 
     def adjustLevels(self, delta_a, delta_b):
         self.setLevels(self.max_a + delta_a, self.max_b + delta_b)
 
     def setLevels(self, max_a, max_b):
-        logging.error('set levels: max_a %d, max_b %d' % 
+        logging.info('requested levels: max_a %d, max_b %d' % 
                       (max_a, max_b))
-        if max_a < 0:
-            max_a = 0
-        if max_b < 0:
-            max_b = 0
+        max_a = max(self.max_a_min, max_a)
+        max_b = max(self.max_b_min, max_b)
         if max_a <= self.hard_max_a:
             self.max_a = max_a
         if max_b <= self.hard_max_b:
             self.max_b = max_b
-        self.norm_a = int(self.max_a * 0.88)
-        self.norm_b = int(self.max_b * 0.88)
-        self.low_a = int(self.max_a * 0.73)
-        self.low_b = int(self.max_b * 0.73)
-        logging.error('setting levels: max_a %d, max_b %d' % 
+        self.max_plus_a = min(int(self.max_a * params.MAX_PLUS_LEVEL), self.hard_max_a)
+        self.max_plus_b = min(int(self.max_b * params.MAX_PLUS_LEVEL), self.hard_max_b)
+        self.norm_a = int(self.max_a * params.NORMAL_LEVEL)
+
+        self.norm_b = int(self.max_b * params.NORMAL_LEVEL)
+        self.low_a = int(self.max_a * params.LOW_LEVEL)
+        self.low_b = int(self.max_b * params.LOW_LEVEL)
+        logging.info('setting levels: max_a %d, max_b %d' % 
                       (self.max_a, self.max_b))
-        logging.error('setting levels: norm_a %d, norm_b %d' % 
+        logging.info('setting levels: max_plus_a %d, max_plus_b %d' % 
+                      (self.max_plus_a, self.max_plus_b))
+        logging.info('setting levels: norm_a %d, norm_b %d' % 
                       (self.norm_a, self.norm_b))
-        logging.error('setting levels: low_a %d, low_b %d' % 
+        logging.info('setting levels: low_a %d, low_b %d' % 
                       (self.low_a, self.low_b))
 
     def start(self):
-        logging.error('deviceClient start')
+        logging.info('deviceClient start')
         try:
             asyncio.get_event_loop().run_until_complete(self.run())
         except RuntimeError as e:
@@ -159,11 +172,11 @@ class deviceHandler():
             asyncio.new_event_loop().run_until_complete(self.run())
         
     async def run(self):
-        logging.error('deviceClient run')
+        logging.info('deviceClient run')
         while True:
-            logging.error('calling producer_handler')
+            logging.info('calling producer_handler')
             await self.producer_handler()
-            logging.error('returned from producer_handler')
+            logging.info('returned from producer_handler')
 
     async def producer_handler(self):
         while True:
@@ -201,7 +214,7 @@ class deviceHandler():
 
     async def processCommand(self, command):
         if command == None:
-            logging.error('Commands finished.')
+            logging.info('Commands finished.')
             return
         else:
             logging.info('processing %s' % command)
@@ -221,6 +234,9 @@ class deviceHandler():
             elif cmd == 'on_max':
                 self.et232.write(0x8c, [self.max_a])
                 self.et232.write(0x88, [self.max_b])
+            elif cmd == 'on_max_plus':
+                self.et232.write(0x8c, [self.max_plus_a])
+                self.et232.write(0x88, [self.max_plus_b])
             elif cmd == 'on_max_a':
                 self.et232.write(0x8c, [self.max_a])
                 self.et232.write(0x88, [0])
@@ -235,6 +251,14 @@ class deviceHandler():
                 value = command['value']
                 self.adjustLevels(0, 2*value)
                 self.et232.write(0x88, [self.max_b])
+            elif cmd == 'adjust_maximum':
+                value = command['value']
+                self.adjustLevels(2*value, 2*value)
+            elif cmd == 'set_minimum':
+                value = command['value']
+                self.setMinimum(zero=value)
+                logging.info('setting levels: max_a_min %d, max_b_min %d' % 
+                              (self.max_a_min, self.max_b_min))
             elif cmd == 'off':
                 self.et232.write(0x8c, [0])
                 self.et232.write(0x88, [0])
@@ -273,11 +297,12 @@ def print_modes(et232):
              0x0f:"Off",
             }
 
-    print('Mode: %s, MA %d, chA %d, chB %d, D3 timer %d' % (
+    logging.info('Mode: %s, MA %d, chA %d, chB %d, D3 timer %d' % (
        modes[et232.read(0xa3)], et232.read(0x89),
        et232.read(0x8c), et232.read(0x88), et232.read(0xd3)))
     return
 
+# used only for testing
 def enqueueCommands(deviceQ, commands):
     #cmdIndex = 0
     #while cmdIndex < len(commands):
@@ -290,16 +315,25 @@ def enqueueCommands(deviceQ, commands):
 def runTest():
     print('runTest')
     deviceQ = queue.Queue()
-    device = deviceHandler(deviceQ, max_a=70, max_b=105, test=True)
+    device = deviceHandler(deviceQ, max_a=105, max_b=135, test=True)
     testCommands = [
         {'cmd': 'reserve'},
         {'cmd': 'off'},
+        {'cmd': 'adjust_maximum', 'value': 1},
         {'cmd': 'on'},
         {'cmd': 'set_ma', 'value': -17},
         {'cmd': 'set_mode', 'value': modeCode('ramp')},
         {'cmd': 'set_level_a', 'value': 20},
         {'cmd': 'set_level_b', 'value': 20},
+        {'cmd': 'on_low'},
+        {'cmd': 'adjust_b', 'value': 1},
+        {'cmd': 'set_minimum', 'value': False},
+        {'cmd': 'adjust_b', 'value': -1},
+        {'cmd': 'set_minimum', 'value': True},
+        {'cmd': 'adjust_b', 'value': -1},
         {'cmd': 'set_mode', 'value': modeCode('waves')},
+        {'cmd': 'on_norm'},
+        {'cmd': 'on_max_plus'},
         {'cmd': 'set_level_b', 'value': 2323},
         {'cmd': 'set_mode', 'value': modeCode('intense')},
         {'cmd': 'off'},

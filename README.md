@@ -22,7 +22,8 @@ The basic states are:
   starts surprising you.
 
 * Locked - in addition you can place the service in the Locked state which prevents resetting
-(stopping) the service, or further on/off cycles
+(stopping) the service, or further on/off cycles.  There is a restrict ability to change the
+levels, but it cannot be lowered below the settings at the point of locking.
 
 My clicker remote is set up as follows:
 
@@ -115,7 +116,9 @@ Called from system startup (e.g. systemd) to start the Surprise application
 Called from system startup (e.g. systemd) to start the DeviceWeb (dweeb) application
 * clicker.py
 This class provide support for a button clicker device to actuate the
-surprise applicaton remote (or while you a bit tied up...)
+surprise applicaton remote (or while you a bit tied up...)  I have found
+the BYEASY Wireless Presenter, RF 2.4GHz Presentation Clicker to be reliable
+and gives me 5 buttons to work with.
 * pages.py
 Simply defines the HTML pages used by the built in webserver.  Very Web 1.0.
 dweebTest.py

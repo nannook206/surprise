@@ -3,9 +3,11 @@
 Support for presentation "clicker" devices used for
 Powerpoint and related presentation applications.
 
-Specifically this support the keyboard like imput that the
-BEBONCOOL RF 2.4GHz Wireless USB Presenter Remote Control (or similar)
+Specifically this supports the keyboard like imput that the
+BYEASY USB Presenter Remote Control (or similar)
 device provides through its USB interface.
+(also BEBONCOOL RF 2.4GHz Wireless USB Presenter Remote Control but
+it was flakey and disconnected unexpectly)
 
 The button actions are eventually mapped to application actions.
 The setXXXX methods are used to associate a button click with

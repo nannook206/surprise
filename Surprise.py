@@ -249,7 +249,7 @@ class Surprise:
         logging.info('Locked.')
         self.locked = True
         playSound('locked')
-        self.setMiniumu()
+        self.setMinimum()
 
     def setMinimum(self, reset=False):
         logging.info('setting minimums')

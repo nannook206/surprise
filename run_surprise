@@ -1,0 +1,27 @@
+#!/bin/bash
+cd /home/pi/surprise
+
+until [ $(ps ax | grep -c rsyslogd) -gt 1 ]; do sleep 2; done
+logger run_surprise found rsyslogd
+
+for i in {1..30}; do
+  if $(netstat -r | grep -q default); then break; fi
+  sleep 1
+done
+if [ $i -eq 30 ]; then
+  logger run_surprise no default route
+else
+  logger run_surprise found default route
+fi
+
+#dweeb until $(netstat -nat | grep -q '0.0.0.0:31280.*LISTEN'); do sleep 2; done
+#dweeb logger run_surprise found dweeb server
+
+until test -c /dev/input/event0; do sleep 2; done
+logger run_surprise found clicker device
+sleep 1
+while true; do 
+	#dweeb ./runSurpriseDweeb.py -v 1
+	./runSurprise.py -v 2
+	sleep 2
+done

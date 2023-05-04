@@ -1,0 +1,5 @@
+#!/bin/bash
+cd /home/pi/dweeb
+while true; do 
+	DWEEB_RESOURCE_DIR=/home/pi/dweeb ./dweeb
+done
